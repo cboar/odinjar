@@ -54,10 +54,19 @@ def find_main(folder):
 
 found = []
 find_main(temp)
-if len(found) > 1:
+
+if args.main:
+	for i in found:
+		if args.main in i:
+			maincl = i
+			break
+elif len(found) > 1:
 	for i, val in enumerate(found):
 		print '\t[#%d] %s' % (i + 1, val)
-	maincl = found[input('found multiple entry points, use index: ') - 1]
+	try:
+		maincl = found[input('found multiple entry points, use index: ') - 1]
+	except IndexError:
+		print 'invalid input!'
 elif len(found) == 1:
 	maincl = found[0]
 
