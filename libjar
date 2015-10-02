@@ -17,8 +17,10 @@ args = parser.parse_args()
 TEMP = '.tmp_libjar'
 try:
 	shutil.rmtree(TEMP)
-	os.remove(TEMP)
-except OSError: pass
+except OSError:
+	try:
+		os.remove(TEMP)
+	except OSError: pass
 os.mkdir(TEMP)
 
 for arg in args.files:
