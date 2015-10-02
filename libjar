@@ -54,6 +54,17 @@ def find_main(folder):
 
 found = []
 find_main(temp)
+if len(found) > 1:
+	for i, val in enumerate(found):
+		print '\t[#%d] %s' % (i + 1, val)
+	classcl = found[input('found multiple entry points, use index: ') - 1]
+elif len(found) == 1:
+	classcl = found[0]
+
+try:
+	print 'using "%s" as main class' % classcl
+except NameError:
+	print 'could not find main class, skipping manifest'
 
 print 'zipping as "%s.jar" ...' % args.out,
 shutil.make_archive(".tmp_out", "zip", temp)
