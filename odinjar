@@ -3,50 +3,55 @@ import sys, os, zipfile, shutil, argparse, re
 from distutils import dir_util, file_util
 from distutils.errors import DistutilsFileError
 
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
-parser = argparse.ArgumentParser(description='Combine files into single jar')
+temp = '.tmp_odinjar'
+parser = argparse.ArgumentParser(
+		description='Merges files and libraries into single jar')
 parser.add_argument('files',
 		nargs='+', help='input files')
 parser.add_argument('-o', '--out',
-		default='out', help='output jar name (default: out)')
-parser.add_argument('-m', '--main',
-		help='Java Class containing main')
-
+		default='out', help='jar output filename (default: out)')
+parser.add_argument('-e', '--entry',
+		help='Java Class containing entry point (main class)')
 args = parser.parse_args()
 
-temp = '.tmp_odinjar'
-try:
-	shutil.rmtree(temp)
-except OSError:
+def setup():
+	sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 	try:
-		os.remove(temp)
-	except OSError: pass
-os.mkdir(temp)
-
-for arg in args.files:
-	if zipfile.is_zipfile(arg):
-		injar = zipfile.ZipFile(arg, 'r')
-		print 'extracting "%s" ...' % arg,
-		injar.extractall(temp)
-		injar.close()
-		print 'done'
-	else:
-		print 'copying "%s" ...' % arg,
-		dest = os.path.join(temp, os.path.basename(os.path.normpath(arg)))
+		shutil.rmtree(temp)
+	except OSError:
 		try:
-			if os.path.isdir(arg):
-				dir_util.copy_tree(arg, dest)
-			else:
-				file_util.copy_file(arg, temp)
-			print 'done'
-		except DistutilsFileError:
-			print 'error, skipping'
+			os.remove(temp)
+		except OSError: pass
+	os.mkdir(temp)
 
-def find_main(folder):
+def extract_zips():
+	for arg in args.files:
+		if zipfile.is_zipfile(arg):
+			injar = zipfile.ZipFile(arg, 'r')
+			print 'extracting "%s" ...' % arg,
+			injar.extractall(temp)
+			injar.close()
+			print 'done'
+
+def copy_dirs():
+	for arg in args.files:
+		if not zipfile.is_zipfile(arg):
+			print 'copying "%s" ...' % arg,
+			dest = os.path.join(temp, os.path.basename(os.path.normpath(arg)))
+			try:
+				if os.path.isdir(arg):
+					dir_util.copy_tree(arg, dest)
+				else:
+					file_util.copy_file(arg, temp)
+				print 'done'
+			except DistutilsFileError:
+				print 'error'
+
+def find_entry(folder, found):
 	for fn in os.listdir(folder):
 		full = os.path.join(folder, fn)
 		if os.path.isdir(full):
-			find_main(full)
+			find_entry(full, found)
 			continue
 		f = open(full)
 		data = str(f.read())
@@ -56,39 +61,51 @@ def find_main(folder):
 			if m:
 				found.append(m[0].replace('/', '.'))
 
-found = []
-find_main(temp)
+def choose_entry(found):
+	if args.entry:
+		for i in found:
+			if args.entry in i:
+				return i
+	elif len(found) > 1:
+		for i, val in enumerate(found):
+			print '\t[#%d] %s' % (i + 1, val)
+		try:
+			return found[input('found multiple entry points, use index: ') - 1]
+		except IndexError:
+			print 'invalid input!'
+	elif len(found) == 1:
+		return found[0]
 
-if args.main:
-	for i in found:
-		if args.main in i:
-			maincl = i
-			break
-elif len(found) > 1:
-	for i, val in enumerate(found):
-		print '\t[#%d] %s' % (i + 1, val)
+def write_manifest(maincl):
 	try:
-		maincl = found[input('found multiple entry points, use index: ') - 1]
-	except IndexError:
-		print 'invalid input!'
-elif len(found) == 1:
-	maincl = found[0]
+		print 'using "%s" as main class' % maincl
+		full = os.path.join(temp, 'META-INF', 'MANIFEST.MF')
+		try: os.remove(full)
+		except OSError: pass
+		man = open(full, 'w')
+		man.write('Manifest-Version: 1.0\r\nMain-Class: %s\r\n\r\n' % maincl)
+		man.close()
+	except NameError:
+		print 'could not find main class, skipping manifest'
 
-try:
-	print 'using "%s" as main class' % maincl
-	full = os.path.join(temp, 'META-INF', 'MANIFEST.MF')
-	try: os.remove(full)
-	except OSError: pass
-	man = open(full, 'w')
-	man.write('Manifest-Version: 1.0\r\nMain-Class: %s\r\n\r\n' % maincl)
-	man.close()
-except NameError:
-	print 'could not find main class, skipping manifest'
+def finish():
+	print 'zipping as "%s.jar" ...' % args.out,
+	shutil.make_archive(".tmp_out", "zip", temp)
+	os.rename(".tmp_out.zip", "%s.jar" % args.out)
+	print 'done'
+	print 'cleaning up ...',
+	shutil.rmtree(temp)
+	print 'done'
 
-print 'zipping as "%s.jar" ...' % args.out,
-shutil.make_archive(".tmp_out", "zip", temp)
-os.rename(".tmp_out.zip", "%s.jar" % args.out)
-print 'done'
-print 'cleaning up ...',
-shutil.rmtree(temp)
-print 'done'
+def main():
+	setup()
+	copy_dirs()
+	found = []
+	find_entry(temp, found)
+	maincl = choose_entry(found)
+	extract_zips()
+	write_manifest(maincl)
+	finish()
+
+if __name__ == "__main__":
+	main()
