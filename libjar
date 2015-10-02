@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys, os, zipfile, shutil
 import argparse
-from distutils import dir_util
+from distutils import dir_util, file_util
 
 parser = argparse.ArgumentParser(description='Combine files into single jar')
 parser.add_argument('files',
@@ -16,7 +16,9 @@ args = parser.parse_args()
 TEMP = '.tmp_libjar'
 try:
 	shutil.rmtree(TEMP)
+	os.remove(TEMP)
 except OSError: pass
+os.mkdir(TEMP)
 
 for arg in args.files:
 	if(zipfile.is_zipfile(arg)):
@@ -31,8 +33,10 @@ for arg in args.files:
 		if(os.path.isdir(arg)):
 			dir_util.copy_tree(arg, dest)
 		else:
-			shutil.copy2(arg, dest)
+			file_util.copy_file(arg, TEMP)
 		print 'done'
+
+"main...(\[Ljava/lang/String;)V"
 
 print 'zipping as "%s.jar" ...' % args.out,
 shutil.make_archive(".tmp_out", "zip", TEMP)
