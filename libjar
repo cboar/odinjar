@@ -3,6 +3,7 @@ import sys, os, zipfile, shutil
 import argparse
 from distutils import dir_util, file_util
 
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 parser = argparse.ArgumentParser(description='Combine files into single jar')
 parser.add_argument('files',
 		nargs='+', help='input files')
@@ -42,4 +43,6 @@ print 'zipping as "%s.jar" ...' % args.out,
 shutil.make_archive(".tmp_out", "zip", TEMP)
 os.rename(".tmp_out.zip", "%s.jar" % args.out)
 print 'done'
+print 'cleaning up ...',
 shutil.rmtree(TEMP)
+print 'done'
