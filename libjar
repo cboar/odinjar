@@ -12,7 +12,6 @@ parser.add_argument('-m', '--main',
 		help='Java Class containing main')
 
 args = parser.parse_args()
-print str(args)
 
 TEMP = '.tmp_libjar'
 try:
@@ -26,13 +25,14 @@ for arg in args.files:
 		injar.extractall(TEMP)
 		injar.close()
 		print 'done'
-	elif(os.path.isdir(arg)):
-		print 'copying "%s" ...' % arg,
-		last = os.path.basename(os.path.normpath(arg))
-		dir_util.copy_tree(arg, os.path.join(TEMP, last))
-		print 'done'
 	else:
-		print 'unknown file "%s"' % arg
+		print 'copying "%s" ...' % arg,
+		dest = os.path.join(TEMP, os.path.basename(os.path.normpath(arg)))
+		if(os.path.isdir(arg)):
+			dir_util.copy_tree(arg, dest)
+		else:
+			shutil.copy2(arg, dest)
+		print 'done'
 
 print 'zipping as "%s.jar" ...' % args.out,
 shutil.make_archive(".tmp_out", "zip", TEMP)
