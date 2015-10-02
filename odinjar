@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys, os, zipfile, shutil, argparse, re
 from distutils import dir_util, file_util
+from distutils.errors import DistutilsFileError
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 parser = argparse.ArgumentParser(description='Combine files into single jar')
@@ -32,11 +33,14 @@ for arg in args.files:
 	else:
 		print 'copying "%s" ...' % arg,
 		dest = os.path.join(temp, os.path.basename(os.path.normpath(arg)))
-		if os.path.isdir(arg):
-			dir_util.copy_tree(arg, dest)
-		else:
-			file_util.copy_file(arg, temp)
-		print 'done'
+		try:
+			if os.path.isdir(arg):
+				dir_util.copy_tree(arg, dest)
+			else:
+				file_util.copy_file(arg, temp)
+			print 'done'
+		except DistutilsFileError:
+			print 'error, skipping'
 
 def find_main(folder):
 	for fn in os.listdir(folder):
