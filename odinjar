@@ -13,7 +13,7 @@ parser.add_argument('-m', '--main',
 
 args = parser.parse_args()
 
-temp = '.tmp_libjar'
+temp = '.tmp_odinjar'
 try:
 	shutil.rmtree(temp)
 except OSError:
