@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+import sys, os, zipfile, shutil
+import argparse
+from distutils import dir_util
+
+parser = argparse.ArgumentParser(description='Combine files into single jar')
+parser.add_argument('files',
+		nargs='+', help='input files')
+parser.add_argument('-o', '--out',
+		default='out', help='output jar name (default: out)')
+parser.add_argument('-m', '--main',
+		help='Java Class containing main')
+
+args = parser.parse_args()
+print str(args)
+
+TEMP = '.tmp_libjar'
+try:
+	shutil.rmtree(TEMP)
+except OSError: pass
+
+for arg in args.files:
+	if(zipfile.is_zipfile(arg)):
+		injar = zipfile.ZipFile(arg, 'r')
+		print 'extracting "%s" ...' % arg,
+		injar.extractall(TEMP)
+		injar.close()
+		print 'done'
+	elif(os.path.isdir(arg)):
+		print 'copying "%s" ...' % arg,
+		last = os.path.basename(os.path.normpath(arg))
+		dir_util.copy_tree(arg, os.path.join(TEMP, last))
+		print 'done'
+	else:
+		print 'unknown file "%s"' % arg
+
+print 'zipping as "%s.jar" ...' % args.out,
+shutil.make_archive(".tmp_out", "zip", TEMP)
+os.rename(".tmp_out.zip", "%s.jar" % args.out)
+print 'done'
+shutil.rmtree(TEMP)
