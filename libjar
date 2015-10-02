@@ -57,12 +57,18 @@ find_main(temp)
 if len(found) > 1:
 	for i, val in enumerate(found):
 		print '\t[#%d] %s' % (i + 1, val)
-	classcl = found[input('found multiple entry points, use index: ') - 1]
+	maincl = found[input('found multiple entry points, use index: ') - 1]
 elif len(found) == 1:
-	classcl = found[0]
+	maincl = found[0]
 
 try:
-	print 'using "%s" as main class' % classcl
+	print 'using "%s" as main class' % maincl
+	full = os.path.join(temp, 'META-INF', 'MANIFEST.MF')
+	try: os.remove(full)
+	except OSError: pass
+	man = open(full, 'w')
+	man.write('Manifest-Version: 1.0\r\nMain-Class: %s\r\n\r\n' % maincl)
+	man.close()
 except NameError:
 	print 'could not find main class, skipping manifest'
 
