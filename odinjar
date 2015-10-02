@@ -12,6 +12,8 @@ parser.add_argument('-o', '--out',
 		default='out', help='jar output filename (default: out)')
 parser.add_argument('-e', '--entry',
 		help='Java Class containing entry point (main class)')
+parser.add_argument('-l', '--inclib', action='store_true',
+		help='Include libraries for finding entry point')
 args = parser.parse_args()
 
 def setup():
@@ -100,10 +102,13 @@ def finish():
 def main():
 	setup()
 	copy_dirs()
+	if args.inclib:
+		extract_zips()
 	found = []
 	find_entry(temp, found)
 	maincl = choose_entry(found)
-	extract_zips()
+	if not args.inclib:
+		extract_zips()
 	write_manifest(maincl)
 	finish()
 
